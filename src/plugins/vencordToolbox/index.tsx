@@ -20,7 +20,7 @@ import "./index.css";
 
 import { openNotificationLogModal } from "@api/Notifications/notificationLog";
 import { Settings, useSettings } from "@api/Settings";
-import ErrorBoundary from "@components/ErrorBoundary";
+import { addToolbarButton, removeToolbarButton } from "@api/ToolbarButtons";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { findExportedComponentLazy } from "@webpack";
@@ -119,33 +119,17 @@ function VencordPopoutButton() {
     );
 }
 
-function ToolboxFragmentWrapper({ children }: { children: ReactNode[]; }) {
-    children.splice(
-        children.length - 1, 0,
-        <ErrorBoundary noop={true}>
-            <VencordPopoutButton />
-        </ErrorBoundary>
-    );
-
-    return <>{children}</>;
-}
+const name = "VencordToolbox";
 
 export default definePlugin({
-    name: "VencordToolbox",
+    name,
     description: "Adds a button next to the inbox button in the channel header that houses Vencord quick actions",
+    dependencies: ["ToolbarButtonsAPI"],
     authors: [Devs.Ven, Devs.AutumnVN],
-
-    patches: [
-        {
-            find: "toolbar:function",
-            replacement: {
-                match: /(?<=toolbar:function.{0,100}\()\i.Fragment,/,
-                replace: "$self.ToolboxFragmentWrapper,"
-            }
-        }
-    ],
-
-    ToolboxFragmentWrapper: ErrorBoundary.wrap(ToolboxFragmentWrapper, {
-        fallback: () => <p style={{ color: "red" }}>Failed to render :(</p>
-    })
+    start: () => {
+        addToolbarButton(name, { Component: VencordPopoutButton, position: -1 });
+    },
+    end: () => {
+        removeToolbarButton(name);
+    }
 });

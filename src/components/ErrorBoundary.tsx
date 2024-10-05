@@ -23,7 +23,7 @@ import { React } from "@webpack/common";
 
 import { ErrorCard } from "./ErrorCard";
 
-interface Props<T = any> {
+export interface Props<T = any> {
     /** Render nothing if an error occurs */
     noop?: boolean;
     /** Fallback component to render if an error occurs */

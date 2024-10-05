@@ -32,6 +32,7 @@ import * as $Notifications from "./Notifications";
 import * as $ServerList from "./ServerList";
 import * as $Settings from "./Settings";
 import * as $Styles from "./Styles";
+import * as $ToolbarButtons from "./ToolbarButtons";
 import * as $UserSettings from "./UserSettings";
 
 /**
@@ -122,3 +123,8 @@ export const MessageUpdater = $MessageUpdater;
  * An API allowing you to get an user setting
  */
 export const UserSettings = $UserSettings;
+
+/**
+ * An API allowing you to add buttons to the upper right toolbar
+ */
+export const ToolbarButtons = $ToolbarButtons;
