@@ -10,7 +10,17 @@ import { Devs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import definePlugin from "@utils/types";
 import { findExportedComponentLazy } from "@webpack";
-import { Menu, MessageStore, SelectedChannelStore, useCallback, useEffect, useState, useStateFromStores } from "@webpack/common";
+import {
+    Clipboard,
+    Menu,
+    MessageStore,
+    Popout,
+    SelectedChannelStore,
+    useCallback,
+    useEffect,
+    useState,
+    useStateFromStores
+} from "@webpack/common";
 import type { Embed, Message } from "discord-types/general";
 
 import "./index.css";
@@ -43,7 +53,7 @@ function getPlaylistUrl(channelId?: string): string | undefined {
         logger.debug("No messages found for channel", resolvedChannelId);
         return;
     }
-    // TODO: MessageStore.getMessages only returns the last 50 messages; figure out how to get more
+    // TODO: MessageStore.getMessages only returns currently visible/loaded messages; figure out how to get more
     const ids: (string | undefined)[] = messages
         .flatMap((m: Message): Embed[] => m.embeds)
         .map((e: Embed) => e.url?.match(youtubeRegex)?.[1]);
@@ -61,10 +71,17 @@ function getPlaylistUrl(channelId?: string): string | undefined {
     return url;
 }
 
+function ToolbarPopout({ onClose, openUrl, copyUrl }: { onClose: () => void, openUrl: () => void, copyUrl: () => void; }) {
+    return <Menu.Menu navId="ytpl-popoutmenu" onClose={onClose}>
+        <Menu.MenuItem id="ytpl-popoutmenu-open" label="Open playlist" action={openUrl} />
+        <Menu.MenuItem id="ytpl-popoutmenu-copy" label="Copy playlist url" action={copyUrl} />
+    </Menu.Menu>;
+}
+
 function ToolbarButton() {
     const channelId = useStateFromStores([SelectedChannelStore], () => SelectedChannelStore.getChannelId());
     const [url, setUrl] = useState<string | undefined>();
-    useEffect(() => { setUrl(getPlaylistUrl(channelId)); }, [channelId, setUrl]);
+    useEffect(() => setUrl(getPlaylistUrl(channelId)), [channelId, setUrl]);
     useEffect(() => {
         function listener() {
             const newUrl = getPlaylistUrl(channelId);
@@ -78,17 +95,49 @@ function ToolbarButton() {
 
     // TODO: update url on new message with youtube embed in current channel
 
-    const onClick = useCallback(() => {
+    const openUrl = useCallback(() => {
         logger.debug('onClick', url);
         if (url) {
             VencordNative.native.openExternal(url);
         }
     }, [url]);
+    const copyUrl = useCallback(() => !!url && Clipboard.copy(url), [url]);
+
+    const [show, setShow] = useState(false);
+    const showPopout = useCallback(() => setShow(true), [setShow]);
+    const closePopout = useCallback(() => setShow(false), [setShow]);
+
+    const renderPopout = useCallback(() => (
+        <Menu.Menu navId="ytpl-popoutmenu" onClose={closePopout}>
+            <Menu.MenuItem id="ytpl-popoutmenu-open" label="Open playlist" action={openUrl} />
+            <Menu.MenuItem id="ytpl-popoutmenu-copy" label="Copy playlist url" action={copyUrl} disabled={!Clipboard.SUPPORTS_COPY} />
+        </Menu.Menu>
+    ), [closePopout, openUrl, copyUrl]);
 
     if (!url) {
         return null;
     }
-    return <HeaderBarIcon className="ytpl-btn" icon={ToolbarIcon} onClick={onClick} tooltip="Playlistify" />;
+    return (
+        <Popout
+            position="bottom"
+            align="right"
+            animation={Popout.Animation.NONE}
+            shouldShow={show}
+            onRequestClose={closePopout}
+            renderPopout={renderPopout}
+        >
+            {(_, { isShown }) => (
+                <HeaderBarIcon
+                    className="ytpl-btn"
+                    icon={ToolbarIcon}
+                    onClick={openUrl}
+                    onContextMenu={showPopout}
+                    selected={isShown}
+                    tooltip={isShown ? null : "Playlistify"}
+                />
+            )}
+        </Popout>
+    );
 }
 
 const contextCommand: NavContextMenuPatchCallback = (children, { channel }) => {
