@@ -8,7 +8,7 @@ import ErrorBoundary, { type Props as ErrorBoundaryProps } from "@components/Err
 import { useMemo } from "@webpack/common";
 import type { ReactNode } from "react";
 
-export type ToolbarComponent = () => JSX.Element;
+export type ToolbarComponent = () => JSX.Element | null | Array<JSX.Element | null>;
 export type ToolbarErrorProps = Omit<ErrorBoundaryProps, 'wrappedProps'>;
 export interface ToolbarButton {
     Component: ToolbarComponent,
